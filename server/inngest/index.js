@@ -3,53 +3,49 @@ import User from "../models/User.js";
 
 export const inngest = new Inngest({ id: "quickshow" });
 
-// Create user in DB when Clerk user is created
+// Create User
 const syncUserCreation = inngest.createFunction(
-  { id: 'sync-user-from-clerk' },
-  { event: 'clerk/user.created' },
+  { id: "quickshow-sync-user-created" },
+  { event: "clerk/user.created" },
   async ({ event }) => {
     const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
-    const userData = {
+    await User.create({
       _id: id,
       email: email_addresses[0].email_address,
       name: `${first_name} ${last_name}`,
       image: image_url
-    };
-
-    await User.create(userData);
+    });
   }
 );
 
-// Delete user from DB when Clerk user is deleted
+// Delete User
 const syncUserDeletion = inngest.createFunction(
-  { id: 'delete-user-from-clerk' },   // ✅ unique ID
-  { event: 'clerk/user.deleted' },
+  { id: "quickshow-sync-user-deleted" },
+  { event: "clerk/user.deleted" },
   async ({ event }) => {
     const { id } = event.data;
     await User.findByIdAndDelete(id);
   }
 );
 
-// Update user in DB when Clerk user is updated
-const syncUserUpdation = inngest.createFunction(
-  { id: 'update-user-from-clerk' },   // ✅ changed to unique ID
-  { event: 'clerk/user.updated' },
+// Update User
+const syncUserUpdate = inngest.createFunction(
+  { id: "quickshow-sync-user-updated" },
+  { event: "clerk/user.updated" },
   async ({ event }) => {
     const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
-    const userData = {
+    await User.findByIdAndUpdate(id, {
       email: email_addresses[0].email_address,
       name: `${first_name} ${last_name}`,
       image: image_url
-    };
-
-    await User.findByIdAndUpdate(id, userData);
+    });
   }
 );
 
 export const functions = [
   syncUserCreation,
   syncUserDeletion,
-  syncUserUpdation
+  syncUserUpdate
 ];
