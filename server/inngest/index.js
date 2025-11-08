@@ -1,6 +1,9 @@
 import { Inngest } from "inngest";
+import User from "../models/User.js";
+
 export const inngest = new Inngest({ id: "quickshow" });
-// create a user
+
+// Create user in DB when Clerk user is created
 const syncUserCreation = inngest.createFunction(
   { id: 'sync-user-from-clerk' },
   { event: 'clerk/user.created' },
@@ -10,40 +13,43 @@ const syncUserCreation = inngest.createFunction(
     const userData = {
       _id: id,
       email: email_addresses[0].email_address,
-      name: first_name + ' ' + last_name,
+      name: `${first_name} ${last_name}`,
       image: image_url
-    }
+    };
 
     await User.create(userData);
   }
 );
-//  inngest function delete user from database
+
+// Delete user from DB when Clerk user is deleted
 const syncUserDeletion = inngest.createFunction(
-  { id: 'delete-user-from-clerk' },
+  { id: 'delete-user-from-clerk' },   // ✅ unique ID
   { event: 'clerk/user.deleted' },
   async ({ event }) => {
-   const{id}=event.date
-   await User.findByIdAndDelete(id)
+    const { id } = event.data;
+    await User.findByIdAndDelete(id);
   }
-)
-// to  update user
+);
+
+// Update user in DB when Clerk user is updated
 const syncUserUpdation = inngest.createFunction(
-  { id: 'delete-user-from-clerk' },
+  { id: 'update-user-from-clerk' },   // ✅ changed to unique ID
   { event: 'clerk/user.updated' },
   async ({ event }) => {
-   const{id,first_name,last_name,email_address,image_url}=event.date
-   const userData = {
-      _id: id,
-      email: email_addresses[0].email_address,
-      name: first_name + ' ' + last_name,
-      image: image_url
-    }
-    await User.findByIdAndUpdate(id,userDate)
-  }
-)
-    export const functions = [
-        syncUserCreation,
-        syncUserDeletion,
-        syncUserUpdation
-    ];
+    const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
+    const userData = {
+      email: email_addresses[0].email_address,
+      name: `${first_name} ${last_name}`,
+      image: image_url
+    };
+
+    await User.findByIdAndUpdate(id, userData);
+  }
+);
+
+export const functions = [
+  syncUserCreation,
+  syncUserDeletion,
+  syncUserUpdation
+];
